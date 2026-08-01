@@ -1,0 +1,144 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  ADMIN
+}
+
+enum MealType {
+  BREAKFAST
+  LUNCH
+  SNACKS
+  DINNER
+}
+
+enum DietTag {
+  NONE
+  VEGETARIAN
+  VEGAN
+  EGGETARIAN
+  ALLERGY
+}
+
+enum ComplaintStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+}
+
+enum Weekday {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(STUDENT)
+  dietTag      DietTag  @default(NONE)
+  dietNote     String?
+  remindersOn  Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  mealResponses MealResponse[]
+  resetTokens   PasswordResetToken[]
+  leaves        Leave[]
+  feedback      MealFeedback[]
+  complaints    Complaint[]
+}
+
+model Leave {
+  id        String   @id @default(uuid())
+  userId    String
+  startDate DateTime @db.Date
+  endDate   DateTime @db.Date
+  reason    String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model MenuItem {
+  id        String   @id @default(uuid())
+  day       Weekday
+  mealType  MealType
+  items     String
+  updatedAt DateTime @updatedAt
+
+  @@unique([day, mealType])
+}
+
+model MealFeedback {
+  id        String   @id @default(uuid())
+  userId    String
+  date      DateTime @db.Date
+  mealType  MealType
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date, mealType])
+  @@index([date])
+}
+
+model Complaint {
+  id         String          @id @default(uuid())
+  userId     String
+  subject    String
+  message    String
+  status     ComplaintStatus @default(OPEN)
+  adminReply String?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+}
+
+model MealResponse {
+  id        String   @id @default(uuid())
+  userId    String
+  date      DateTime @db.Date
+  mealType  MealType
+  response  Boolean
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date, mealType])
+  @@index([date])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+}
